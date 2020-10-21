@@ -51,7 +51,6 @@ OUTPUT=${2}
 chromosomeFile=${3}
 gap=${4}
 bedGenes=${5}
-#bedGenes=/projects1/pestis/lnba_paper_2020/indels/Y_pestis_NC_003143_genes.bed
 
 echo "Running command: IndelCheck.sh ${1} ${2} ${3} ${4} ${5}"
 
