@@ -1,0 +1,534 @@
+---
+title: "Stone Age Plague"
+output: html_notebook
+---
+
+##Description Notebook
+This notebook will contain any bits of analysis conducted in samples positive for plague during the Stone Age (and possibly later, only prehistorical genomes). 
+
+#Checking branch OOH003-RISE505-ARS007-KZL002
+```{r}
+library(tidyverse)
+snpTable_OOH003c <- read.delim("/projects1/pestis/lnba_paper_2020/vcfAnalysis/MS_3X_snps_falseSNPexcluded_LNBA_07072020/snpTable_OOH003_c.tsv")
+noncalls <- c(".","N")
+
+  snpTable_OOH003c %>%
+  select(Position, OOH003_c, RISE505, ARS007, KZL002, KLE048) %>%
+  filter(!OOH003_c %in% noncalls & RISE505 %in% noncalls & KLE048 %in% noncalls) %>%
+  filter(OOH003_c == ARS007 | OOH003_c == KZL002)
+
+snpTable_OOH003c %>%
+  select(Position, OOH003_c, RISE505, ARS007, KZL002, KLE048) %>%
+  filter(!RISE505 %in% noncalls & OOH003_c %in% noncalls & KLE048 %in% noncalls) %>%
+  filter(RISE505 == ARS007 | OOH003_c == KZL002) 
+
+snpTable_OOH003c %>%
+  select(Position, OOH003_c, RISE505, ARS007, KZL002, KLE048) %>%
+  filter(!RISE505 %in% noncalls & !OOH003_c %in% noncalls & !ARS007 %in% noncalls & !KZL002 %in% noncalls & KLE048 %in% noncalls)
+
+snpTable_OOH003c %>%
+  select(Position, OOH003_c, RISE505, ARS007, KZL002, KLE048) %>%
+  filter(!RISE505 %in% noncalls & !OOH003_c %in% noncalls & ARS007 %in% noncalls & KZL002 %in% noncalls & KLE048 %in% noncalls)
+
+##Branch RK1 and RISE509
+snpTable_OOH003c %>%
+  select(Position, RISE509, RK1001.C, GEN72, GRS004, Gyvakarai1, XXX001.A18962.69.72, GZL002.A0101_02.YP2.1, GZL001.A0101_02.YP2.1, KunilaII, HUT004.A_1343UnTal85, HOP001, HOP004, PST006.A_Post6, KLE031, KLE048, RISE505, OOH003_c, ARS007, KZL002) %>%
+  filter(!RISE509 %in% noncalls & RK1001.C %in% noncalls & !GEN72 %in% noncalls)
+
+snpTable_OOH003c %>%
+  filter(HUT004.A_1343UnTal85 == KLZ001 & HUT004.A_1343UnTal85 != HOP001)
+```
+
+#Genetic vs geographical distance
+###Package and function loading
+```{r}
+#Calculate pairwise genetic distance
+library(tidyverse)
+library(geosphere)
+library(reshape2)
+library(ggplot2)
+library(ape)
+library(plotly)
+library(ggpubr)
+###FUNCTIONS###
+
+matrixToLong <- function(matrix, name, levels){
+  longdf <- melt(matrix, value.name = name)
+  longdf$Var1 <- factor(longdf$Var1, levels = levels)
+  longdf$Var2 <- factor(longdf$Var2, levels = levels)
+  return(longdf)
+}
+
+GenDistanceCalculator <- function(snpData, model, pairwise, levels, snpTable){
+  percentDistance <- dist.dna(snpData, model = model, 
+                              as.matrix = TRUE, 
+                              pairwise.deletion = pairwise)
+#https://rdrr.io/cran/ape/man/dist.gene.html
+  rownames(percentDistance) <- unique(snpTable$Genomes)
+  colnames(percentDistance) <- unique(snpTable$Genomes)
+  
+  longdf <- melt(percentDistance, value.name = "GenD")
+  longdf$Var1 <- factor(longdf$Var1, levels = levels)
+  longdf$Var2 <- factor(longdf$Var2, levels = levels)
+  return(longdf)
+}
+
+GeoDistanceCalculator <- function(metadata, levels) {
+  metadataFiltered <- metadata %>%
+  filter(Name %in% levels)
+  
+  lonlatmatrix <- metadataFiltered %>%
+    select(Longitud, Latitude) %>%
+    data.matrix()
+  distanceMatrix <- distm(lonlatmatrix, fun = distCosine)
+  rownames(distanceMatrix) <- metadataFiltered$Name
+  colnames(distanceMatrix) <- metadataFiltered$Name
+  longdf <- melt(distanceMatrix, value.name = "GeoD")
+  longdf$Var1 <- factor(longdf$Var1, levels = levels)
+  longdf$Var2 <- factor(longdf$Var2, levels = levels)
+  return(longdf)
+}
+
+C14DistanceCalculator <- function(metadata, levels) {
+  metadataFiltered <- metadata %>%
+  filter(Name %in% levels)
+  Median.C14 <- metadataFiltered$Median.C14
+  medianDateDiff <- outer(Median.C14, Median.C14, '-')
+  #medianDateDiff <- abs(medianDateDiff)
+  rownames(medianDateDiff) <- metadataFiltered$Name
+  colnames(medianDateDiff) <- metadataFiltered$Name
+  longdf <- melt(medianDateDiff, value.name = "C14_distance")
+  longdf$Var1 <- factor(longdf$Var1, levels = levels)
+  longdf$Var2 <- factor(longdf$Var2, levels = levels)
+  
+  return(longdf)
+}
+
+matrixPlotting <- function(df, fi, title) {
+  ggplot(df, aes(x= Var2, y=Var1))+
+  geom_raster(aes(fill=fi)) +
+  scale_fill_viridis_c(option="plasma") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x="Samples", y="Samples", title=title)
+}
+
+plotGenTime <- function(DNADist, GeoDist, TimeDist) {
+  GenGeoTimeD <- DNADist %>%
+  left_join(GeoDist) %>%
+  left_join(TimeDist) %>%
+  filter(C14_distance > 0)
+
+lmGenTime <- lm(GenD ~ C14_distance, data = GenGeoTimeD)
+GenTimeCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=C14_distance, color=GeoD)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  scale_color_viridis_c(option = "plasma") +
+  labs(title = paste("Adj R2 =", round(summary(lmGenTime)$adj.r.squared, digits = 4), ",p-value =", summary(lmGenTime)$coef[2,4])) +
+  theme_bw()
+return(GenTimeCorr)
+}
+
+plotGenGeo <- function(DNADist, GeoDist, TimeDist) {
+  GenGeoTimeD <- DNADist %>%
+  left_join(GeoDist) %>%
+  left_join(TimeDist) %>%
+  filter(C14_distance > 0)
+
+lmGenGeo <- lm(GenD ~ GeoD, data = GenGeoTimeD)
+GenGeoCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=GeoD, color=C14_distance)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  scale_color_viridis_c(option = "plasma") +
+  labs(title = paste("Adj R2 =", round(summary(lmGenGeo)$adj.r.squared, digits = 4), ",p-value =", summary(lmGenGeo)$coef[2,4])) +
+  theme_bw()
+return(GenGeoCorr)
+}
+###END FUNCTIONS ###
+```
+###LNBA branch
+```{r}
+##Reading metadata file
+metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/Metadata_coordinates_dating_sex_updated_def.csv") %>%
+  filter(!Name=="XXX001.A18956.61")
+
+##Reading snpTable and selecting genomes present in the metadata file
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/genotyped_snpTable_OOH003_c.tsv") %>%
+  pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
+  filter(Genomes %in% metadata$Name) %>%
+  mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
+  select(-Ref, -Call) %>%
+    filter(!Genomes=="XXX001.A18956.61")
+
+missingData <- snpTable %>%
+  filter(CallDef == "N") %>%
+  group_by(Position) %>%
+  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+
+GenomesPresent <- unique(snpTable$Genomes) 
+#Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
+snpDataPestis <- snpTable %>%
+  pivot_wider(names_from = Position, values_from = CallDef) %>%
+  select_if(~ length(unique(.)) > 1) %>%
+  as.matrix() %>%
+  as.DNAbin()
+
+levelsPhylogeny <- metadata$Name
+
+longDistDNAPercent <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
+
+#Calculate distance matrix
+longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+
+#Difference median C14
+medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+
+
+GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
+GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+
+plotLNBA <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
+plotLNBAannotated <- annotate_figure(plotLNBA, top= text_grob("Y. pestis LNBA branch", face = "italic"))
+
+##Convert to function
+#plot_ly(data = GenGeoTimeD, x= ~GenD, y= ~C14_distance, z= ~GeoD, type = "scatter3d", mode="markers", color = ~Var2)
+```
+###Second Pandemic Branch
+```{r}
+##Reading metadata file
+metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/2ndPandemic_transect/Metadata_2ndpandemic.csv")
+
+##Reading snpTable and selecting genomes present in the metadata file
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/genotyped_snpTable_OOH003_c.tsv") %>%
+  pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
+  filter(Genomes %in% metadata$Name) %>%
+  mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
+  select(-Ref, -Call) %>%
+    filter(!Genomes=="XXX001.A18956.61_merged")
+
+missingData <- snpTable %>%
+  filter(CallDef == "N") %>%
+  group_by(Position) %>%
+  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+
+GenomesPresent <- unique(snpTable$Genomes) 
+#Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
+snpDataPestis <- snpTable %>%
+  pivot_wider(names_from = Position, values_from = CallDef) %>%
+  select_if(~ length(unique(.)) > 1) %>%
+  as.matrix() %>%
+  as.DNAbin()
+
+levelsPhylogeny <- metadata$Name
+
+longDistDNAPercent <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
+
+#Calculate distance matrix
+longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+
+#Difference median C14
+medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+
+GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
+GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+
+plot2ndpandemic <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
+plot2ndpandemicannotated <- annotate_figure(plot2ndpandemic, top= text_grob("Y. pestis second pandemic branch", face = "italic"))
+
+##Convert to function
+#plot_ly(data = GenGeoTimeD, x= ~GenD, y= ~C14_distance, z= ~GeoD, type = "scatter3d", mode="markers", color = ~Var2)
+
+```
+###S. enterica
+```{r}
+##Reading metadata file
+metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/enterica/Enterica_metadata.csv")
+
+##Reading snpTable and selecting genomes present in the metadata file
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/enterica/snpTable.tsv") %>%
+  pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
+  filter(Genomes %in% metadata$Name) %>%
+  mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
+  select(-Ref, -Call)
+
+#missingData <- snpTable %>%
+#  filter(CallDef == "N") %>%
+#  group_by(Position) %>%
+#  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+
+GenomesPresent <- unique(snpTable$Genomes) 
+#Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
+snpData <- snpTable %>%
+  pivot_wider(names_from = Position, values_from = CallDef) %>%
+  select_if(~ length(unique(.)) > 1) %>%
+  as.matrix() %>%
+  as.DNAbin()
+
+#To order the matrix by phylogeny
+levelsPhylogeny <- metadata$Name
+
+longDistDNAPercent <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+
+#Calculate distance matrix
+longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+
+#Difference median C14
+medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+
+GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
+GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+
+plotEnterica <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
+plotEntericaAnnotated <- annotate_figure(plotEnterica, top= text_grob("S. enterica", face = "italic"))
+```
+###M. leprae
+```{r}
+##Reading metadata file
+metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/leprosy/Leprosy_metadata.csv")
+
+##Reading snpTable and selecting genomes present in the metadata file
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/leprosy/2018_02_12_snpTable_wo_hyper.tsv") %>%
+  pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
+  filter(Genomes %in% metadata$Name) %>%
+  mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
+  select(-Ref, -Call)
+
+#missingData <- snpTable %>%
+#  filter(CallDef == "N") %>%
+#  group_by(Position) %>%
+#  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+
+GenomesPresent <- unique(snpTable$Genomes) 
+#Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
+snpData <- snpTable %>%
+  pivot_wider(names_from = Position, values_from = CallDef) %>%
+  select_if(~ length(unique(.)) > 1) %>%
+  as.matrix() %>%
+  as.DNAbin()
+
+#To order the matrix by phylogeny
+levelsPhylogeny <- metadata$Name
+
+longDistDNAPercent <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+
+#Calculate distance matrix
+longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+
+#Difference median C14
+medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+
+GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
+GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+
+plotLeprosy <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
+plotLeprosyannotated <- annotate_figure(plotLeprosy, top= text_grob("Mycobacterium Leprae", face = "italic"))
+```
+
+```{r}
+ggarrange(plotLNBAannotated, plot2ndpandemicannotated, plotEntericaAnnotated, plotLeprosyannotated,
+          nrow = 4,
+          labels = c("A","B","C", "D"))
+```
+
+
+#Indels
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(ggplot2)
+library(ggalt)
+
+plottingMissingRegions <- function(df, levelvector, genomeToFilter, lengthChromosome, titlePlot){
+  msdf <- df
+  colnames(msdf) <-  c('Genome','PositionStart','PositionEnd','CoverageOther', 'Length','PercentCov')
+  msdf$Genome2 <- factor(msdf$Genome, levels = levelvector)
+  msdf %>% filter(! Genome %in% genomeToFilter) %>%
+  ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Genome)) +
+    geom_dumbbell(size=1.5, color="#a0117d", colour_x = "#ffd23f", colour_xend = "#a29f15") +
+    scale_x_continuous(expand = c(0,0), limits = c(0,lengthChromosome)) +
+    ggtitle(titlePlot) +
+    labs(x = "Postion Chromosome") +
+    theme_minimal() +
+    theme(axis.title.y = element_blank())
+}
+
+plottingMissingRegions2 <- function(df, levelvector, genomeToFilter, lengthChromosome, titlePlot){
+  msdf <- df
+  colnames(msdf) <-  c('Genome','PositionStart','PositionEnd', 'Length','PercentCov')
+  msdf$Genome2 <- factor(msdf$Genome, levels = levelvector)
+  msdf %>% filter(! Genome %in% genomeToFilter) %>%
+  ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Genome)) +
+    geom_dumbbell(size=2, color="#2804c9", colour_x = "#2804c9", colour_xend = "#2804c9") +
+    scale_x_continuous(expand = c(0,0),limits = c(0,lengthChromosome)) +
+    ggtitle(titlePlot) +
+    labs(x = "Postion Chromosome") +
+    theme_minimal() +
+    theme(axis.title.y = element_blank())
+}
+
+missingregionsCO92_merged <- read.delim("/projects1/pestis/lnba_paper_2020/indels/CO92_based_eager2_indelScript/Missingregions_min500bp_100.tsv", header = F) %>%
+  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
+  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
+  mutate(V1 = str_replace(V1, ".merged.samereadgroup.cleaned", "")) %>%
+  mutate(V1 = str_replace(V1, ".trim.fastq.mapq0.onlymapped_","")) %>%
+  mutate(V1 = str_replace(V1, "_L1","")) %>%
+  mutate(V1 = str_replace(V1, "0.PE2-PESTF_0.1", "0.PE2_PEST-F"))
+
+missingregionsYpseudo_merged <- read.delim("/projects1/pestis/lnba_paper_2020/indels/ypseudo_based_eager2_indelScript/Missingregions_min500bp_100.tsv", header = F) %>%
+  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
+  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
+  mutate(V1 = str_replace(V1, ".samereadgroup.cleaned", "")) %>%
+  mutate(V1 = str_replace(V1, ".trim.fastq.sorted.cleaned.rmdup.MarkD_","")) %>%
+  mutate(V1 = str_replace(V1, "_L1",""))
+
+
+Order <- c("Y.pseudo.0.1_32.fq", "RISE509.MA877", "RK1001.C0101_allcombined","VLI092.A0101_rmdup", "KNK001_libmerged", "GEN_72", "GRS004.A0101_rmdup", "ABI745_HiSeqL5L6", "XXX001.A18962-69-72_libmerged", "GLZ001.A0101_02.YP2.1", "GLZ002.A0101_2.YP2.1", "ABI843_nonUDG", "ABI933_1343UNTA85", "HOP001.A0102_rmdup", "HOP004_libmerged", "KLZ001_libmerged","CHC004.A0101_rmdup","ABI910_6POST", "HGC009_libmerged", "KLE031.A0101_rmdup", "MIB054_libmerged", "KLE048.A0101_rmdup", "OOH003.A0102_A0103.merged", "RISE505.MA873",  "ARS007_libmerged", "KZL002_libmerged", "0.PE2_PEST-F", "XXX001.A18956-61_libmerged", "RT5_shotgun", "YpestisCO92")
+toExclude <- c("HGC009_libmerged")
+ggplot(missingregionsCO92_merged, aes(V5)) + geom_histogram() + stat_bin(binwidth = 0.001) + geom_vline(aes(xintercept=0.15))
+
+plottingMissingRegions2(missingregionsCO92_merged, Order, toExclude, 4653728, "Missing regions (reference = Y. pestis CO92)")
+missingregionsCO92_merged %>%
+  filter(V5 <= 0.20) %>%
+  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pestis CO92)")
+missingregionsCO92_merged %>%
+  filter(V5 <= 0.15) %>%
+  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pestis CO92)")
+
+
+plottingMissingRegions2(missingregionsYpseudo_merged, Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
+missingregionsYpseudo_merged %>%
+  filter(V5 <= 0.10) %>%
+  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
+
+
+CO92_missing <- missingregionsYpseudo_merged %>%
+  filter(V1=="YpestisCO92") %>%
+  select(V2,V3,V4) %>%
+  mutate(start_min=V2-60,
+         start_max=V2+60,
+         end_min=V3-60,
+         end_max=V3+60,
+         window_min=V4-60,
+         window_max=V4+60)
+ypseudo_trial <- missingregionsYpseudo_merged 
+for(r in 1:nrow(CO92_missing)) {
+  start_min<-CO92_missing[r,4]
+  start_max<-CO92_missing[r,5]
+  end_min<-CO92_missing[r,6]
+  end_max<-CO92_missing[r,7]
+  ypseudo_trial <- ypseudo_trial %>%
+    filter(! V2 %in% (start_min:start_max))
+}
+
+plottingMissingRegions2(ypseudo_trial, Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
+
+
+```
+
+#Missing genes
+```{r}
+missinggenes <- read.delim("/projects1/pestis/lnba_paper_2020/indels/CO92_based/All.missing.genes.bed")
+colnames(missinggenes) <- c("Genome", "PositionStart", "PositionEnd", "Randomtab", "Genes", "BasesMissing")
+
+missinggenes <- missinggenes %>% select(-Randomtab) #%>%
+#  mutate(Clade=)
+#genes <- unique(missinggenes$Genes)
+#write.csv(genes, "/projects1/pestis/lnba_paper_2020/indels/CO92_based/unique_genes.txt", row.names = F, col.names = F)
+#Runned in the cluster in /projects1/pestis/lnba_paper_2020/indels/CO92_based
+#system("tail -n +2 unique_genes.txt | sed 's/"//g' > unique_genes_def.txt")
+#system("rm unique_genes.txt")
+#system("grep -f unique_genes_def.txt Y_pestis_NC_003143_genes.bed | awk -F '\t' '{print $NF"\t"($3-$2)}' > genes_cdssize.tsv")
+
+genescds <- read.delim("/projects1/pestis/lnba_paper_2020/indels/CO92_based/genes_cdssize.tsv", header = F)
+colnames(genescds) <- c("Genes","CDS_size")
+
+missinggenesdef <-missinggenes %>%
+  left_join(genescds) %>%
+  group_by(Genes, Genome, CDS_size) %>%
+  summarise(BasesMissing=sum(BasesMissing)) %>%
+  mutate(PercentGenePresent=((CDS_size-BasesMissing))/CDS_size)
+
+missinggenesdef %>%
+  filter(PercentGenePresent<0.90) %>%
+  ggplot(aes(PercentGenePresent)) +                     # Plot the values
+    geom_histogram(bins = 300, aes(fill=..count..)) +
+  scale_fill_gradient("Count", low="green", high="red")
+LNBAGenomes <- c( "RISE509.MA877.trim", "RK1001.C0101_allcombined", "KNK001.A0101.YP1", "GEN_72", "GRS004.A0101.YP1", "ABI745_HiSeqL5L6", "XXX001.A18962-69.merged", "XXX001.A18962-73.merged", "XXX001.A18970-73.merged","XXX001.A18962-69-72.merged", "ABI843_nonUDG", "ABI933_1343UNTA85", "HOP001.A0102_trimmed.combined", "HOP004_A0101", "KLZ001.A0101.YP1",  "ABI910_6POST", "HGC009.A0101.YP1", "KLE031.A0101_fqconcatenated", "KLE048.A0101_fqconcatenated", "RISE505.MA873_L1", "OOH003_A0102",  "ARS007_B0101", "KZL002_A0101")
+
+
+summary_missing_LNBA <- missinggenesdef %>%
+  mutate(Clade=ifelse(Genome %in% LNBAGenomes, "LNBA", "NoLNBA")) %>%
+  filter(PercentGenePresent<0.75) %>%
+  filter(! Genome %in% c("KNK001.A0101.YP1","HGC009.A0101.YP1","XXX001.A18962-69.merged","XXX001.A18970-73.merged","XXX001.A18962-73.merged", "MIB054.A0101.YP1")) %>%
+  group_by(Genes,Clade) %>%
+  summarise(total=n())
+summary_missing_LNBA %>%
+  ggplot(aes(total)) +
+  geom_histogram(bins = 20, aes(fill=..count..)) +
+  scale_fill_gradient("Count", low="green", high="red")
+
+
+noLNBA <- summary_missing_LNBA %>%
+  filter(Clade=="NoLNBA")
+LNBA <- summary_missing_LNBA %>%
+  filter(Clade=="LNBA")
+Genes3ormore <- summary_missing_LNBA %>%
+  filter(Clade=="LNBA") %>%
+  filter(total>=3) %>%
+  filter(! Genes %in% noLNBA$Genes)
+Genesin2 <- summary_missing_LNBA %>%
+  filter(Clade=="LNBA") %>%
+  filter(total==2) %>%
+  filter(! Genes %in% noLNBA$Genes)
+Singletons <- summary_missing_LNBA %>%
+  filter(Clade=="LNBA") %>%
+  filter(total==1) %>%
+  filter(! Genes %in% noLNBA$Genes)
+
+NoinLNBA <- noLNBA %>%
+  filter(! Genes %in% LNBA$Genes)
+
+missinggenesdef$Genome2 <- factor(missinggenesdef$Genome, levels = c("Y.pseudo.0", "RISE509.MA877.trim", "RK1001.C0101_allcombined", "KNK001.A0101.YP1", "GEN_72", "GRS004.A0101.YP1", "ABI745_HiSeqL5L6", "XXX001.A18962-69.merged", "XXX001.A18962-73.merged", "XXX001.A18970-73.merged","XXX001.A18962-69-72.merged", "ABI843_nonUDG", "ABI933_1343UNTA85", "HOP001.A0102_trimmed.combined", "HOP004_A0101", "KLZ001.A0101.YP1",  "ABI910_6POST", "HGC009.A0101.YP1", "KLE031.A0101_fqconcatenated", "KLE048.A0101_fqconcatenated", "RISE505.MA873_L1", "OOH003_A0102",  "ARS007_B0101", "KZL002_A0101" ,"XXX001.A18956-61.merged","0.PE2-PESTF_0.1"))
+#missinggenesdef$Genes2 <- factor(missinggenesdef$Genes, levels = as.factor(genescds$Genes))
+plottingHist <- function(df, df2) {
+  df %>%
+    filter(Genes %in% df2$Genes) %>%
+  filter(! Genome %in% c("KNK001.A0101.YP1","HGC009.A0101.YP1", "MIB054.A0101.YP1")) %>%
+  mutate(PercentGenePresent2=ifelse(PercentGenePresent<0, 0, PercentGenePresent)) %>%
+  ggplot(aes(Genes, Genome2, fill=PercentGenePresent2)) +
+  geom_tile() +
+  scale_fill_viridis_c() + 
+  theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.text.x = element_text(angle = 90, size = 5), legend.title = element_blank(), panel.background = element_rect(fill = '#FDE725FF'))
+}
+plottingHist(missinggenesdef, Genes3ormore)
+plottingHist(missinggenesdef, Genesin2)
+plottingHist(missinggenesdef, Singletons)
+plottingHist(missinggenesdef, NoinLNBA)
+```
+
+#SNPEff
+```{r}
+library(tidyverse)
+snpEffTable <- read.delim("/projects1/pestis/lnba_paper_2020/snpEff/snpEff_AAV_3X_snp_falseSNPsExcluded_historicalgenomes10X_OOH003snpcalling_XXX001.A18962-69-72_2020-07-20/snpEff_lnba_20200721_2.out", skip = 2)
+snpTableOOH003c <- read.delim("/projects1/pestis/lnba_paper_2020/vcfAnalysis/AAV_3X_snp_falseSNPsExcluded_historicalgenomes10X_OOH003snpcalling_XXX001.A18962-69-72_2020-07-20/genotyped_snpTable_OOH003_c.tsv", check.names=FALSE)
+
+snpTableOOH003c %>%
+  left_join(snpEffTable) %>%
+  select(-X..Chromo, -Change, -Reference) %>%
+  write_tsv("/projects1/pestis/lnba_paper_2020/snpEff/snpEff_AAV_3X_snp_falseSNPsExcluded_historicalgenomes10X_OOH003snpcalling_XXX001.A18962-69-72_2020-07-20/snpTable_OOH003genotyped_withSNPEff.tsv")
+
+```
+#Figure displaying the radiocarbon range per sample
+```{r}
+metadataNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
+
+metadataNBA$Sample.Name <- factor(metadataNBA$Sample.Name, levels= c("RISE509", "RK1001", "VLI092.A0101","KNK001","GEN72","GRS004.A0101","Gyvakaral1","I5884","GLZ002","GLZ001","KunilaII","1343UnTal85","HOP004", "HOP001.A0102","KLZ001","CHC004.A0101","6Post","KLE031.A0101","MIB054", "KLE048.A0101","OOH003","RISE505","ARS007", "KZL002","I2470","MIK005_RT5"))
+
+library(ggalt)
+ggplot() +
+  geom_dumbbell(data = metadataNBA, aes(y=Sample.Name, x=Start_Range_C14, 
+                                        xend=End_Range_C14, colour=Colour), size=1, show.legend = FALSE) +
+  scale_x_reverse() +
+  xlab("cal. years Before Present") +
+  ylab("") +
+  theme_bw()
+```
