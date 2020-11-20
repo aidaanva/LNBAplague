@@ -9,7 +9,7 @@ This notebook will contain any bits of analysis conducted in samples positive fo
 #Checking branch OOH003-RISE505-ARS007-KZL002
 ```{r}
 library(tidyverse)
-snpTable_OOH003c <- read.delim("/projects1/pestis/lnba_paper_2020/vcfAnalysis/MS_3X_snps_falseSNPexcluded_LNBA_07072020/snpTable_OOH003_c.tsv")
+snpTable_OOH003c <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/genotyped_snpTable_OOH003_c.tsv")
 noncalls <- c(".","N")
 
   snpTable_OOH003c %>%
@@ -37,6 +37,63 @@ snpTable_OOH003c %>%
 
 snpTable_OOH003c %>%
   filter(HUT004.A_1343UnTal85 == KLZ001 & HUT004.A_1343UnTal85 != HOP001)
+```
+#Virulence analysis
+###Chromosome
+```{r}
+library(ggplot2)
+library(readr)
+library(viridis)
+
+chromosome_heatmap <- read_tsv(file = "Data/Virulence/Chromosome/all_final.tsv",
+                               col_names = c("genome", "perc", "genes"))
+
+chromosome_heatmap_reduced <- chromosome_heatmap[!grepl("filamentous_prophage[1-9]", chromosome_heatmap$genes),]
+
+genomes_ordered <- read_csv(file = "Data/Virulence/genome_names.csv",
+                            col_names = c("Order"))
+y_order <- as.vector(genomes_ordered$Order)
+chromosome_heatmap_reduced$genome <- factor(chromosome_heatmap_reduced$genome, levels=y_order)
+x_order <- as.vector(unique(chromosome_heatmap_reduced$genes))
+chromosome_heatmap_reduced$genes <- factor(chromosome_heatmap_reduced$genes, levels = x_order)
+
+chromosome_plot <- ggplot(data = chromosome_heatmap_reduced, mapping = aes(x = genes, y = genome, fill = perc)) +
+  geom_raster() +
+  scale_fill_viridis_c(option = "inferno") +
+  labs(fill = "Percentage", title = "Chromosome", x = NULL) +
+  theme(axis.text.x = element_text(size = 12, angle = 90, hjust = 1, vjust = 0.5),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+```
+###Plasmids
+```{r}
+plasmids_heatmap <- read_tsv(file = "Data/Virulence/Plasmids/combined.tsv",
+                             col_names = c("genome", "perc", "genes", "plasmid"))
+
+plasmids_heatmap$genome <- factor(plasmids_heatmap$genome, levels=y_order)
+x_order_plasmids <- as.vector(unique(plasmids_heatmap$genes))
+plasmids_heatmap$genes <- factor(plasmids_heatmap$genes, levels = x_order_plasmids)
+
+plasmids_plot <- ggplot(data = plasmids_heatmap, mapping = aes(x = genes, y = genome, fill = perc)) +
+  geom_raster() +
+  scale_fill_viridis_c(option = "inferno")+
+  facet_grid(~ plasmid, scales = "free_x", space = "free_x") +
+  theme(axis.text.x = element_text(size = 12, angle = 90, hjust = 1, vjust = 0.5),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 16),
+        axis.title.y = element_blank(),
+        strip.text.x = element_text(size = 12),
+        strip.background = element_rect(fill = "transparent"),
+        plot.margin = margin(0,200,0,200),
+        panel.spacing = unit(4, "lines")
+        ) +
+  labs(fill = "Percentage", x = NULL)
+
+Figure2 <- ggarrange(chromosome_plot, plasmids_plot, nrow = 2, heights = c(1,0.8))
+ggsave("Figure2.pdf", plot = Figure2, device = "pdf", path = "Plots/", height = 30, width = 40, units = "cm", limitsize = FALSE)
 ```
 
 #Genetic vs geographical distance
@@ -244,7 +301,7 @@ plot2ndpandemicannotated <- annotate_figure(plot2ndpandemic, top= text_grob("Y. 
 metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/enterica/Enterica_metadata.csv")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/enterica/snpTable.tsv") %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/enterica/snpTable.tsv.gz") %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
@@ -324,9 +381,10 @@ plotLeprosyannotated <- annotate_figure(plotLeprosy, top= text_grob("Mycobacteri
 ```
 
 ```{r}
-ggarrange(plotLNBAannotated, plot2ndpandemicannotated, plotEntericaAnnotated, plotLeprosyannotated,
+correlations_final <- ggarrange(plotLNBAannotated, plot2ndpandemicannotated, plotEntericaAnnotated, plotLeprosyannotated,
           nrow = 4,
           labels = c("A","B","C", "D"))
+ggsave(filename = "Correlations.pdf", plot = correlations_final, device = "pdf", path = "Plots/", height = 38, width = 28, units = "cm", limitsize = FALSE)
 ```
 
 
@@ -339,25 +397,10 @@ library(ggalt)
 
 plottingMissingRegions <- function(df, levelvector, genomeToFilter, lengthChromosome, titlePlot){
   msdf <- df
-  colnames(msdf) <-  c('Genome','PositionStart','PositionEnd','CoverageOther', 'Length','PercentCov')
-  msdf$Genome2 <- factor(msdf$Genome, levels = levelvector)
-  msdf %>% filter(! Genome %in% genomeToFilter) %>%
-  ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Genome)) +
-    geom_dumbbell(size=1.5, color="#a0117d", colour_x = "#ffd23f", colour_xend = "#a29f15") +
-    scale_x_continuous(expand = c(0,0), limits = c(0,lengthChromosome)) +
-    ggtitle(titlePlot) +
-    labs(x = "Postion Chromosome") +
-    theme_minimal() +
-    theme(axis.title.y = element_blank())
-}
-
-plottingMissingRegions2 <- function(df, levelvector, genomeToFilter, lengthChromosome, titlePlot){
-  msdf <- df
-  colnames(msdf) <-  c('Genome','PositionStart','PositionEnd', 'Length','PercentCov')
-  msdf$Genome2 <- factor(msdf$Genome, levels = levelvector)
-  msdf %>% filter(! Genome %in% genomeToFilter) %>%
-  ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Genome)) +
-    geom_dumbbell(size=2, color="#2804c9", colour_x = "#2804c9", colour_xend = "#2804c9") +
+  msdf$Genome2 <- factor(msdf$Name, levels = levelvector)
+  msdf %>% filter(! Name %in% genomeToFilter) %>%
+  ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Name)) +
+    geom_dumbbell(size=2, color="#0F2080", colour_x = "#0F2080", colour_xend = "#0F2080") +
     scale_x_continuous(expand = c(0,0),limits = c(0,lengthChromosome)) +
     ggtitle(titlePlot) +
     labs(x = "Postion Chromosome") +
@@ -365,62 +408,29 @@ plottingMissingRegions2 <- function(df, levelvector, genomeToFilter, lengthChrom
     theme(axis.title.y = element_blank())
 }
 
-missingregionsCO92_merged <- read.delim("/projects1/pestis/lnba_paper_2020/indels/CO92_based_eager2_indelScript/Missingregions_min500bp_100.tsv", header = F) %>%
-  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
-  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
-  mutate(V1 = str_replace(V1, ".merged.samereadgroup.cleaned", "")) %>%
-  mutate(V1 = str_replace(V1, ".trim.fastq.mapq0.onlymapped_","")) %>%
-  mutate(V1 = str_replace(V1, "_L1","")) %>%
-  mutate(V1 = str_replace(V1, "0.PE2-PESTF_0.1", "0.PE2_PEST-F"))
+order_genomes <- read.delim("Data/Indels/genome_names.csv")
 
-missingregionsYpseudo_merged <- read.delim("/projects1/pestis/lnba_paper_2020/indels/ypseudo_based_eager2_indelScript/Missingregions_min500bp_100.tsv", header = F) %>%
-  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
-  mutate(V1 = str_replace(V1, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
-  mutate(V1 = str_replace(V1, ".samereadgroup.cleaned", "")) %>%
-  mutate(V1 = str_replace(V1, ".trim.fastq.sorted.cleaned.rmdup.MarkD_","")) %>%
-  mutate(V1 = str_replace(V1, "_L1",""))
+missingregionsCO92_merged <- read.delim("Data/Indels/Missingregions_min500bp_100.tsv", header = F, col.names = c('BamName','PositionStart','PositionEnd', 'Length','PercentCov')) %>%
+  mutate(BamName = str_replace(BamName, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
+  mutate(BamName = str_replace(BamName, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
+  mutate(BamName = str_replace(BamName, ".merged.samereadgroup.cleaned", "")) %>%
+  mutate(BamName = str_replace(BamName, ".trim.fastq.mapq0.onlymapped_","")) %>%
+  mutate(BamName = str_replace(BamName, "_L1","")) %>%
+  left_join(order_genomes)
 
 
-Order <- c("Y.pseudo.0.1_32.fq", "RISE509.MA877", "RK1001.C0101_allcombined","VLI092.A0101_rmdup", "KNK001_libmerged", "GEN_72", "GRS004.A0101_rmdup", "ABI745_HiSeqL5L6", "XXX001.A18962-69-72_libmerged", "GLZ001.A0101_02.YP2.1", "GLZ002.A0101_2.YP2.1", "ABI843_nonUDG", "ABI933_1343UNTA85", "HOP001.A0102_rmdup", "HOP004_libmerged", "KLZ001_libmerged","CHC004.A0101_rmdup","ABI910_6POST", "HGC009_libmerged", "KLE031.A0101_rmdup", "MIB054_libmerged", "KLE048.A0101_rmdup", "OOH003.A0102_A0103.merged", "RISE505.MA873",  "ARS007_libmerged", "KZL002_libmerged", "0.PE2_PEST-F", "XXX001.A18956-61_libmerged", "RT5_shotgun", "YpestisCO92")
-toExclude <- c("HGC009_libmerged")
-ggplot(missingregionsCO92_merged, aes(V5)) + geom_histogram() + stat_bin(binwidth = 0.001) + geom_vline(aes(xintercept=0.15))
-
-plottingMissingRegions2(missingregionsCO92_merged, Order, toExclude, 4653728, "Missing regions (reference = Y. pestis CO92)")
-missingregionsCO92_merged %>%
-  filter(V5 <= 0.20) %>%
-  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pestis CO92)")
-missingregionsCO92_merged %>%
-  filter(V5 <= 0.15) %>%
-  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pestis CO92)")
 
 
-plottingMissingRegions2(missingregionsYpseudo_merged, Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
-missingregionsYpseudo_merged %>%
-  filter(V5 <= 0.10) %>%
-  plottingMissingRegions2(Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
 
+Order <- as.vector(order_genomes$Name)
 
-CO92_missing <- missingregionsYpseudo_merged %>%
-  filter(V1=="YpestisCO92") %>%
-  select(V2,V3,V4) %>%
-  mutate(start_min=V2-60,
-         start_max=V2+60,
-         end_min=V3-60,
-         end_max=V3+60,
-         window_min=V4-60,
-         window_max=V4+60)
-ypseudo_trial <- missingregionsYpseudo_merged 
-for(r in 1:nrow(CO92_missing)) {
-  start_min<-CO92_missing[r,4]
-  start_max<-CO92_missing[r,5]
-  end_min<-CO92_missing[r,6]
-  end_max<-CO92_missing[r,7]
-  ypseudo_trial <- ypseudo_trial %>%
-    filter(! V2 %in% (start_min:start_max))
-}
+toExclude <- c("")
 
-plottingMissingRegions2(ypseudo_trial, Order, toExclude, 4744671, "Missing regions (reference = Y. pseudotuberculosis IP32953)")
+missing_plot <- missingregionsCO92_merged %>%
+  filter(PercentCov <= 0.15) %>%
+  plottingMissingRegions(Order, toExclude, 4744671, "Missing regions (reference = Y. pestis CO92)")
 
+ggsave(filename = "SupplementaryFigure3_indels.pdf", plot = missing_plot, device = "pdf", path = "Plots/", height = 25, width = 45, units = "cm", limitsize = FALSE)
 
 ```
 
@@ -519,16 +529,23 @@ snpTableOOH003c %>%
 ```
 #Figure displaying the radiocarbon range per sample
 ```{r}
-metadataNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
+metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
 
-metadataNBA$Sample.Name <- factor(metadataNBA$Sample.Name, levels= c("RISE509", "RK1001", "VLI092.A0101","KNK001","GEN72","GRS004.A0101","Gyvakaral1","I5884","GLZ002","GLZ001","KunilaII","1343UnTal85","HOP004", "HOP001.A0102","KLZ001","CHC004.A0101","6Post","KLE031.A0101","MIB054", "KLE048.A0101","OOH003","RISE505","ARS007", "KZL002","I2470","MIK005_RT5"))
+metadataLNBA$Sample.Name <- factor(metadataNBA$Sample.Name, levels= c("RISE509", "RK1001", "VLI092","KNK001","GEN72","GRS004","Gyvakaral1","I5884","GLZ002","GLZ001","KunilaII","1343UNTAL85","HOP004", "HOP001","KLZ001","CHC004","6POST","KLE031","MIB054", "KLE048","OOH003","RISE505","ARS007", "KZL002","I2470","RT5"))
+metadataLNBA$Branch <- factor(metadataLNBA$Branch, levels = c("NoLNBA", "LNBA"))
 
 library(ggalt)
-ggplot() +
-  geom_dumbbell(data = metadataNBA, aes(y=Sample.Name, x=Start_Range_C14, 
-                                        xend=End_Range_C14, colour=Colour), size=1, show.legend = FALSE) +
+radiocarbon_plot <- ggplot() +
+  geom_dumbbell(data = metadataLNBA, aes(y=Sample.Name, x=Start_Range_C14, 
+                                        xend=End_Range_C14, colour=Dating), size=1) +
   scale_x_reverse() +
-  xlab("cal. years Before Present") +
-  ylab("") +
-  theme_bw()
+  labs(x="cal. years Before Present", y=NULL) +
+  theme_classic2() +
+  facet_grid(rows = vars(Branch), scales = "free", space = "free") +
+  theme(strip.text = element_blank(),
+        strip.background = element_blank(),
+        panel.spacing = unit(5, "lines"))
+
+ggsave(filename = "Figure1_Radiocarbondating_2.pdf", plot = radiocarbon_plot, device = "pdf", path = "Plots/", height = 20, width = 35, units = "cm", limitsize = FALSE)
+
 ```
