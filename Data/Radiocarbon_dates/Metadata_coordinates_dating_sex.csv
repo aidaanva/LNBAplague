@@ -1,4 +1,4 @@
-Sample Name,Name,Latitude,Longitud,Median C14,Start_Range_C14,End_Range_C14,Sex,Dating,Branch,Published,Notes
+Sample Name,Name,Latitude,Longitude,Median C14,Start_Range_C14,End_Range_C14,Sex,Dating,Branch,Published,Notes
 MIB054,MIB054,49.99,15.77,3814.5,3899,3730,M,C14,LNBA,This study,
 HOP004,HOP004_merged,50.08,14.28,4250,4400,4100,F,C14,LNBA,This study,
 KLE048,KLE048.A0101_trimmed,48.21,10.84,3702,3818,3586,M,C14,LNBA,This study,
