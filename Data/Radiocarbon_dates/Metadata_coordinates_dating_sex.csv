@@ -1,30 +1,30 @@
-Sample Name,Name,Latitude,Longitude,Median C14,Start_Range_C14,End_Range_C14,Sex,Dating,Branch,Published,Notes,Region
-MIB054,MIB054,49.99,15.77,3814.5,3899,3730,M,C14,LNBA,This study,,West
-HOP004,HOP004_merged,50.08,14.28,4250,4400,4100,F,C14,LNBA,This study,,West
-KLE048,KLE048.A0101_trimmed,48.21,10.84,3702,3818,3586,M,C14,LNBA,This study,,West
-HOP001,HOP001.A0102.YP1.2_trimmed.combined,50.08,14.28,4278.5,4405,4152,M,C14,LNBA,This study,,West
-VLI092,VLI092.A0101,50.37,14.44,4725.5,4832,4619,M,C14,LNBA,This study,,West
-KZL002,KZL002_merged,48.27,75.35,2596.5,2736,2457,F,C14,LNBA,This study,sex?,East
-GRS004,GRS004.A0101.YP1.1_trimmed,51.18,12.26,4662,4800,4524,M,C14,LNBA,This study,mean,West
-KLE031,KLE031.A0101_trimmed,48.21,10.84,3839.5,3959,3720,F,C14,LNBA,This study,,West
-I2470,XXX001.A18956.61_merged,42.57,-2.62,3271,3361,3181,M,C14,NoLNBA,This study,,West
-I5884,XXX001.A18962.69.72_merged,48.91,33.76,4531,4649,4413,M,BEAST,LNBA,This study,mean,Central
-CHC004,CHC004.A0101,53.46,15.33,3979,4085,3873,M,C14,LNBA,This study,,West
-KLZ001,KLZ001.A0101_duplicated,44.84,42.21,4167,4243,4091,F,C14,LNBA,This study,mean,Central
-KNK001,KNK001,45.82,41.58,4706,4827,4585,M,C14,LNBA,This study,,Central
-ARS007,ARS007_B0101_B0102_duplicated,49.65,99.72,3147,3288,3006,M,C14,LNBA,This study,sex?,East
-OOH003,OOH003_c,48.23,10.86,3516.5,3586,3447,F,C14,LNBA,This study,,West
-RK1001,RK1001.C,45.56,41.03,4725,4828,4622,M,C14,LNBA,Andrades Valtueña et al. (2017),,Central
-GEN72,GEN72,45.34,18.70,4712.5,4833,4592,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
-Gyvakaral1,Gyvakarai1,55.91,24.89,4496.5,4571,4422,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
-KunilaII,KunilaII,58.61,23.79,4407,4524,4290,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
-1343UNTAL85,HUT004.A_1343UnTal85,48.37,10.89,4222,4346,4098,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
-6POST,PST006.A_Post6,48.37,10.89,3894.5,3957,3832,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
-GLZ001,GZL001.A0101_02.YP2.1,52.27,104.25,4556,4788,4445,M,C14,LNBA,Yu et al. (2020),mean,East
-GLZ002,GZL002.A0101_02.YP2.1,52.27,104.25,4430,4518,4300,M,C14,LNBA,Yu et al. (2020),mean,East
-RISE505,RISE505,53.45,85.44,3634.5,3694,3575,F,C14,LNBA,Rasmussen et al. (2015),,East
-RISE509,RISE509,54.58,90.77,4730.5,4836,4625,F,C14,LNBA,Rasmussen et al. (2015),,East
-RT5,MIK005_RT5,53.24,50.20,3786,3868,3704,M,C14,NoLNBA,Spyrou et al. (2018),,East
-VEL003,VEL003,49.17,16.84,4406.5,4516,4297,?,C14,LNBA,This study,,West
-GRH001,GRH001,45.06,41.99,2805,2849,2761,?,C14,LNBA,This study,,Central
-I5884,XXX001.A18962.69.72_merged,48.91,33.76,4743,4840,4646,M,C14,LNBA,This study,mean,Central
+Sample Name,Name,Site,SiteA,Latitude,Longitude,Median C14,Start_Range_C14,End_Range_C14,Sex,Dating,Branch,Published,Notes,Region
+MIB054,MIB054,Mikulovice (big),MIB,49.99,15.77,3814.5,3899,3730,M,C14,LNBA,This study,,West
+HOP004,HOP004_merged,Hostivice-Palouky,HOP,50.08,14.28,4250,4400,4100,F,C14,LNBA,This study,,West
+KLE048,KLE048.A0101_trimmed,Kleinaitingen,KLE,48.21,10.84,3702,3818,3586,M,C14,LNBA,This study,,West
+HOP001,HOP001.A0102.YP1.2_trimmed.combined,Hostivice-Palouky,HOP,50.08,14.28,4278.5,4405,4152,M,C14,LNBA,This study,,West
+VLI092,VLI092.A0101,Vlineves,VLI,50.37,14.44,4725.5,4832,4619,M,C14,LNBA,This study,,West
+KZL002,KZL002_merged,Kyzyl,KZL,48.27,75.35,2596.5,2736,2457,F,C14,LNBA,This study,sex?,East
+GRS004,GRS004.A0101.YP1.1_trimmed,Großstorkwitz,GRS,51.18,12.26,4662,4800,4524,M,C14,LNBA,This study,mean,West
+KLE031,KLE031.A0101_trimmed,Kleinaitingen,KLE,48.21,10.84,3839.5,3959,3720,F,C14,LNBA,This study,,West
+I2470,XXX001.A18956.61_merged,El Sotillo,ESO,42.57,-2.62,3271,3361,3181,M,C14,NoLNBA,This study,,West
+I5884,XXX001.A18962.69.72_merged,Dereivka I,DER,48.91,33.76,4487,4317,4624,M,BEAST,LNBA,This study,mean,Central
+CHC004,CHC004.A0101,Chocivel,CHC,50.79,17.09,3979,4085,3873,M,C14,LNBA,This study,,West
+KLZ001,KLZ001.A0101_duplicated,Kaluzhny 1,KLZ,44.84,42.21,4167,4243,4091,F,C14,LNBA,This study,mean,Central
+KNK001,KNK001,Krasnogvardeyskoe,KNK,45.82,41.58,4706,4827,4585,M,C14,LNBA,This study,,Central
+ARS007,ARS007_B0101_B0102_duplicated,Arbulag sum,ARS,49.65,99.72,3147,3288,3006,M,C14,LNBA,This study,sex?,East
+OOH003,OOH003_c,Oberottmarshausen,OOH,48.23,10.86,3516.5,3586,3447,F,C14,LNBA,This study,,West
+RK1001,RK1001.C,Rasshevatskiy,RK,45.56,41.03,4725,4828,4622,M,C14,LNBA,Andrades Valtueña et al. (2017),,Central
+GEN72,GEN72,Beli Manastir - Popova zemlja,GEN,45.34,18.70,4712.5,4833,4592,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
+Gyvakaral1,Gyvakarai1,Gyvakarai,GYV,55.91,24.89,4496.5,4571,4422,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
+KunilaII,KunilaII,Kunila,KUN,58.61,23.79,4407,4524,4290,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
+1343UNTAL85,HUT004.A_1343UnTal85,Haunstetten Unterer Talweg 85,HUT,48.37,10.89,4222,4346,4098,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
+6POST,PST006.A_Post6,Haunstetten Postillionstrasse 6,PST,48.37,10.89,3894.5,3957,3832,M,C14,LNBA,Andrades Valtueña et al. (2017),,West
+GLZ001,GZL001.A0101_02.YP2.1,Glazkovskoe predmestie,GLZ,52.27,104.25,4556,4788,4445,M,C14,LNBA,Yu et al. (2020),mean,East
+GLZ002,GZL002.A0101_02.YP2.1,Glazkovskoe predmestie,GLZ,52.27,104.25,4430,4518,4300,M,C14,LNBA,Yu et al. (2020),mean,East
+RISE505,RISE505,Kytmanovo,KYT,53.45,85.44,3634.5,3694,3575,F,C14,LNBA,Rasmussen et al. (2015),,East
+RISE509,RISE509,Bateni,BAT,54.58,90.77,4730.5,4836,4625,F,C14,LNBA,Rasmussen et al. (2015),,East
+RT5,MIK005_RT5,Mikhailovsky II burial site,MIK,53.24,50.20,3786,3868,3704,M,C14,NoLNBA,Spyrou et al. (2018),,East
+VEL003,VEL003,Velešovice,VEL,49.17,16.84,4406.5,4516,4297,?,C14,LNBA,This study,,West
+GRH001,GRH001,Grushevskogo,GRH,45.06,41.99,2805,2849,2761,?,C14,LNBA,This study,,Central
+I5884,XXX001.A18962.69.72_merged,Dereivka I,DER,48.91,33.76,4743,4840,4646,M,C14,LNBA,This study,mean,Central

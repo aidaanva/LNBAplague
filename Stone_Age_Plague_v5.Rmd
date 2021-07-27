@@ -219,7 +219,7 @@ metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/M
   filter(!Name=="XXX001.A18956.61")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/genotyped_snpTable_OOH003_c.tsv") %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv") %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
@@ -235,7 +235,7 @@ GenomesPresent <- unique(snpTable$Genomes)
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
 snpDataPestis <- snpTable %>%
   pivot_wider(names_from = Position, values_from = CallDef) %>%
-  select_if(~ length(unique(.)) > 1) %>%
+  select(where(~ n_distinct(.) > 1)) %>%
   as.matrix() %>%
   as.DNAbin()
 
@@ -281,7 +281,7 @@ GenomesPresent <- unique(snpTable$Genomes)
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
 snpDataPestis <- snpTable %>%
   pivot_wider(names_from = Position, values_from = CallDef) %>%
-  select_if(~ length(unique(.)) > 1) %>%
+  select(where(~ n_distinct(.) > 1)) %>%
   as.matrix() %>%
   as.DNAbin()
 
@@ -326,7 +326,7 @@ GenomesPresent <- unique(snpTable$Genomes)
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
 snpData <- snpTable %>%
   pivot_wider(names_from = Position, values_from = CallDef) %>%
-  select_if(~ length(unique(.)) > 1) %>%
+  select(where(~ n_distinct(.) > 1)) %>%
   as.matrix() %>%
   as.DNAbin()
 
@@ -368,7 +368,7 @@ GenomesPresent <- unique(snpTable$Genomes)
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
 snpData <- snpTable %>%
   pivot_wider(names_from = Position, values_from = CallDef) %>%
-  select_if(~ length(unique(.)) > 1) %>%
+  select(where(~ n_distinct(.) > 1)) %>%
   as.matrix() %>%
   as.DNAbin()
 
@@ -394,7 +394,13 @@ plotLeprosyannotated <- annotate_figure(plotLeprosy, top= text_grob("Mycobacteri
 correlations_final <- ggarrange(plotLNBAannotated, plot2ndpandemicannotated, plotEntericaAnnotated, plotLeprosyannotated,
           nrow = 4,
           labels = c("A","B","C", "D"))
-ggsave(filename = "Correlations.pdf", plot = correlations_final, device = "pdf", path = "Plots/", height = 38, width = 28, units = "cm", limitsize = FALSE)
+ggsave(filename = "Supplementary_figure6_correlations.pdf", plot = correlations_final, device = "pdf", path = "Plots/", height = 38, width = 28, units = "cm", limitsize = FALSE)
+
+
+correlation_pestis_only <- ggarrange(plotLNBAannotated, plot2ndpandemicannotated,
+          nrow = 2,
+          labels = c("A","B"))
+ggsave(filename = "Figure4_correlations.pdf", plot = correlation_pestis_only, device = "pdf", path = "Plots/", height = 20, width = 28, units = "cm", limitsize = FALSE)
 ```
 
 
@@ -412,7 +418,7 @@ plottingMissingRegions <- function(df, levelvector, genomeToFilter, lengthChromo
   msdf %>% filter(! Name %in% genomeToFilter) %>%
   ggplot(aes(x=PositionStart, xend=PositionEnd, y=Genome2, group=Name)) +
     geom_dumbbell(size=2, color="#0F2080", colour_x = "#0F2080", colour_xend = "#0F2080") +
-    scale_x_continuous(expand = c(0,0),limits = c(0,lengthChromosome)) +
+    scale_x_continuous(expand = c(0,0),limits = c(0,lengthChromosome), labels = scales::comma) +
     ggtitle(titlePlot) +
     labs(x = "Postion Chromosome") +
     theme_minimal() +
@@ -451,7 +457,7 @@ ggsave(filename = "SupplementaryFigure3_0.20_indels_2021.pdf", plot = missing_pl
 ```{r}
 metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
 
-metadataLNBA$Sample.Name <- factor(metadataLNBA$Sample.Name, levels= c("RISE509", "RK1001", "VLI092","KNK001","GEN72","GRS004","Gyvakaral1","I5884","GLZ002","GLZ001","KunilaII","VEL003","1343UNTAL85","HOP001", "HOP004","KLZ001","CHC004","6POST","KLE031","MIB054", "KLE048","OOH003","RISE505","ARS007","GRH001", "KZL002","I2470","RT5"))
+metadataLNBA$Sample.Name <- factor(metadataLNBA$Sample.Name, levels= c("RK1001", "RISE509", "VLI092","KNK001","GRS004", "GEN72","Gyvakaral1","VEL003","I5884","GLZ001","GLZ002","KunilaII","1343UNTAL85","HOP001", "HOP004","KLZ001","CHC004","6POST","KLE031", "KLE048","MIB054","RISE505","OOH003","ARS007","GRH001", "KZL002","I2470","RT5"))
 metadataLNBA$Branch <- factor(metadataLNBA$Branch, levels = c("NoLNBA", "LNBA"))
 metadataLNBA$Dating <- factor(metadataLNBA$Dating, levels = c("C14", "BEAST"))
 
@@ -465,8 +471,10 @@ radiocarbon_plot <- ggplot() +
   labs(x="cal. years Before Present", y=NULL) +
   theme_classic() +
   facet_grid(rows = vars(Branch), scales = "free", space = "free") +
-  theme(axis.text = element_text(size = 8),
+  theme(axis.text = element_text(size = 12),
+        #axis.text.y =element_blank(),
         strip.text = element_blank(),
+        legend.position = c(0.9,0.15),
         strip.background = element_blank(),
         panel.spacing = unit(2, "lines"),
         panel.grid.major = element_blank(),
@@ -474,18 +482,18 @@ radiocarbon_plot <- ggplot() +
         panel.background = element_rect(fill = "transparent", colour = NA),
         plot.background = element_rect(fill = "transparent", colour = NA))
 
-ggsave(filename = "Figure1_Radiocarbondating_2021.pdf", plot = radiocarbon_plot, device = "pdf", path = "Plots/", height = 20, width = 35, units = "cm", limitsize = FALSE, bg = "transparent")
+ggsave(filename = "Figure1_Radiocarbondating_2021.pdf", plot = radiocarbon_plot, device = "pdf", path = "Plots/", height = 20, width = 20, units = "cm", limitsize = FALSE, bg = "transparent")
 
 ```
 #Map of sites
 ```{r}
 library(ggmap)
+library(directlabels)
 library(ggplot2)
-library(dplyr)
 library(RColorBrewer)
 
  
-metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
+metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_sites_coordinates.csv") 
 metadataLNBA$Published <- factor(metadataLNBA$Published, levels = c("This study","Yu et al. (2020)","Spyrou et al. (2018)","Andrades Valtueña et al. (2017)", "Rasmussen et al. (2015)"))
 
 height <- max(metadataLNBA$Latitude) - min(metadataLNBA$Latitude)
@@ -497,17 +505,24 @@ map_borders <- c(bottom  = min(metadataLNBA$Latitude)  - 0.7 * height,
 
 map <- get_stamenmap(map_borders, zoom = 6, maptype = "terrain-background")
               
-ss <- scale_size_area(breaks=c(1,5,10), max_size=8)
-
-Map <- ggmap(map) + 
-  geom_point(data=metadataLNBA, stroke=1, size = 5, aes(x=Longitude, y=Latitude, fill = Published, shape=Published)) + 
- ss +
+Map <- ggmap(map, aes(label =metadataLNBA$Site)) + 
+  geom_point(data=metadataLNBA, stroke=1, size = 5, aes(x=Longitude, y=Latitude, fill = Branch, shape = Published)) +
+  geom_label_repel(data=metadataLNBA, aes(x = Longitude, y = Latitude, label = SiteA), label.size = NA, fill = alpha(c("white"),0)) +
  xlab("Latitude") + 
  ylab("Longitude") +
-#  scale_fill_manual(values = c("#e7298aff","#66a61eff","#7570b3ff","#1b9e77ff","#d95f02ff")) +
-  scale_fill_manual(values = c("#e7298aff","#e6ab02","#e6ab02","#e6ab02","#e6ab02")) +
-  scale_shape_manual(values = c(24,25,23,21,22)) +
-  theme(legend.position = c(0.9,0.15))
+  #scale_fill_manual(name = "Clade", values = c("#e7298aff","#e6ab02")) +
+  scale_shape_manual(name = "Publication",values = c(24,25,23,21,22)) +
+  scale_x_continuous(expand=c(0,0))+
+  scale_y_continuous(expand=c(0,0)) +
+  guides(fill = guide_legend(override.aes = list(shape =21)),
+         shape = guide_legend(override.aes = list(fill = "black", size = 3))) +
+  theme_bw() +
+  theme(legend.position = c(0.88,0.157),
+        legend.direction = "vertical",
+        legend.box = "horizontal",
+        legend.spacing.x = unit(0,"mm"),
+        legend.box.background = element_rect(fill = "white", colour = "white"))
+
 
 ggsave(filename = "Figure1_ArchaeologicalSites_2021.pdf", plot = Map, device = "pdf", path = "Plots/", height = 40, width = 35, units = "cm", limitsize = FALSE, bg = "transparent")
 ```
