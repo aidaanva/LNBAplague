@@ -190,7 +190,7 @@ GenTimeCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=C14_distance, color=GeoD)) +
   geom_point() +
   geom_smooth(method = lm) +
   scale_color_viridis_c(option = "plasma") +
-  labs(title = paste("Adj R2 =", round(summary(lmGenTime)$adj.r.squared, digits = 4), ",p-value =", summary(lmGenTime)$coef[2,4])) +
+  labs(title = paste("Adj R2 =", round(summary(lmGenTime)$adj.r.squared, digits = 4), ",p-value =",  summary(lmGenTime)$coef[2,4]), x = "Genetic distance", y= "Temporal distance", colour= "Geographical \n distance") +
   theme_bw()
 return(GenTimeCorr)
 }
@@ -206,7 +206,7 @@ GenGeoCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=GeoD, color=C14_distance)) +
   geom_point() +
   geom_smooth(method = lm) +
   scale_color_viridis_c(option = "plasma") +
-  labs(title = paste("Adj R2 =", round(summary(lmGenGeo)$adj.r.squared, digits = 4), ",p-value =", summary(lmGenGeo)$coef[2,4])) +
+  labs(title = paste("Adj R2 =", round(summary(lmGenGeo)$adj.r.squared, digits = 4), ",p-value =", summary(lmGenGeo)$coef[2,4]), x = "Genetic distance", y= "Geographical distance", colour= "Temporal \n distance") +
   theme_bw()
 return(GenGeoCorr)
 }
@@ -226,10 +226,10 @@ snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect
   select(-Ref, -Call) %>%
     filter(!Genomes=="XXX001.A18956.61")
 
-missingData <- snpTable %>%
-  filter(CallDef == "N") %>%
-  group_by(Position) %>%
-  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+#missingData <- snpTable %>%
+#  filter(CallDef == "N") %>%
+#  group_by(Position) %>%
+#  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
 
 GenomesPresent <- unique(snpTable$Genomes) 
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
@@ -272,10 +272,10 @@ snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect
   select(-Ref, -Call) %>%
     filter(!Genomes=="XXX001.A18956.61_merged")
 
-missingData <- snpTable %>%
-  filter(CallDef == "N") %>%
-  group_by(Position) %>%
-  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
+#missingData <- snpTable %>%
+#  filter(CallDef == "N") %>%
+#  group_by(Position) %>%
+#  summarise(percent=(n()/length(unique(snpTable$Genomes)))*100)
 
 GenomesPresent <- unique(snpTable$Genomes) 
 #Prepare data for calculating the genetic distance and excluding positions where all the genomes have the same call
@@ -491,6 +491,7 @@ library(ggmap)
 library(directlabels)
 library(ggplot2)
 library(RColorBrewer)
+library(ggrepel)
 
  
 metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_sites_coordinates.csv") 
