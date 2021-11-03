@@ -117,6 +117,7 @@ library(ggplot2)
 library(ape)
 library(plotly)
 library(ggpubr)
+library(vegan)
 ###FUNCTIONS###
 
 matrixToLong <- function(matrix, name, levels){
@@ -133,11 +134,7 @@ GenDistanceCalculator <- function(snpData, model, pairwise, levels, snpTable){
 #https://rdrr.io/cran/ape/man/dist.gene.html
   rownames(percentDistance) <- unique(snpTable$Genomes)
   colnames(percentDistance) <- unique(snpTable$Genomes)
-  
-  longdf <- melt(percentDistance, value.name = "GenD")
-  longdf$Var1 <- factor(longdf$Var1, levels = levels)
-  longdf$Var2 <- factor(longdf$Var2, levels = levels)
-  return(longdf)
+  return(percentDistance)
 }
 
 GeoDistanceCalculator <- function(metadata, levels) {
@@ -150,10 +147,7 @@ GeoDistanceCalculator <- function(metadata, levels) {
   distanceMatrix <- distm(lonlatmatrix, fun = distCosine)
   rownames(distanceMatrix) <- metadataFiltered$Name
   colnames(distanceMatrix) <- metadataFiltered$Name
-  longdf <- melt(distanceMatrix, value.name = "GeoD")
-  longdf$Var1 <- factor(longdf$Var1, levels = levels)
-  longdf$Var2 <- factor(longdf$Var2, levels = levels)
-  return(longdf)
+  return(distanceMatrix)
 }
 
 C14DistanceCalculator <- function(metadata, levels) {
@@ -161,14 +155,10 @@ C14DistanceCalculator <- function(metadata, levels) {
   filter(Name %in% levels)
   Median.C14 <- metadataFiltered$Median.C14
   medianDateDiff <- outer(Median.C14, Median.C14, '-')
-  #medianDateDiff <- abs(medianDateDiff)
+  medianDateDiff <- abs(medianDateDiff)
   rownames(medianDateDiff) <- metadataFiltered$Name
   colnames(medianDateDiff) <- metadataFiltered$Name
-  longdf <- melt(medianDateDiff, value.name = "C14_distance")
-  longdf$Var1 <- factor(longdf$Var1, levels = levels)
-  longdf$Var2 <- factor(longdf$Var2, levels = levels)
-  
-  return(longdf)
+  return(medianDateDiff)
 }
 
 matrixPlotting <- function(df, fi, title) {
@@ -179,7 +169,39 @@ matrixPlotting <- function(df, fi, title) {
   labs(x="Samples", y="Samples", title=title)
 }
 
-plotGenTime <- function(DNADist, GeoDist, TimeDist) {
+plotGenTime <- function(DNADist, GeoDist, TimeDist, mantelResults) {
+  GenGeoTimeD <- DNADist %>%
+    left_join(GeoDist) %>%
+    left_join(TimeDist) 
+  
+  GenTimeCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=C14_distance, color=GeoD)) +
+    geom_point() +
+    geom_smooth(method = lm, se = FALSE) +
+    #geom_smooth() +
+    scale_color_viridis_c(option = "plasma") +
+    labs(title = paste("Mantel Statistic r =", round(mantelResults$statistic, digits = 4), ", Significance =", round(mantelResults$signif, digits = 4)), x = "Genetic distance", y= "Temporal distance", colour= "Geographical \n distance") +
+    theme_bw()
+  return(GenTimeCorr)
+}
+
+plotGenGeo <- function(DNADist, GeoDist, TimeDist, mantelResults) {
+  GenGeoTimeD <- DNADist %>%
+    left_join(GeoDist) %>%
+    left_join(TimeDist) %>%
+    filter(C14_distance > 0)
+  
+  GenGeoCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=GeoD, color=C14_distance)) +
+    geom_point() +
+    geom_smooth(method = lm, se = FALSE) +
+#    geom_smooth() +
+    scale_color_viridis_c(option = "plasma") +
+    labs(title = paste("Mantel Statistic r =", round(mantelResults$statistic, digits = 4), ", Significance =", round(mantelResults$signif, digits = 4)), x = "Genetic distance", y= "Geographical distance", colour= "Temporal \n distance") +
+    theme_bw()
+  return(GenGeoCorr)
+}
+
+
+plotGenTimelm <- function(DNADist, GeoDist, TimeDist) {
   GenGeoTimeD <- DNADist %>%
   left_join(GeoDist) %>%
   left_join(TimeDist) %>%
@@ -195,7 +217,7 @@ GenTimeCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=C14_distance, color=GeoD)) +
 return(GenTimeCorr)
 }
 
-plotGenGeo <- function(DNADist, GeoDist, TimeDist) {
+plotGenGeolm <- function(DNADist, GeoDist, TimeDist) {
   GenGeoTimeD <- DNADist %>%
   left_join(GeoDist) %>%
   left_join(TimeDist) %>%
@@ -210,21 +232,22 @@ GenGeoCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=GeoD, color=C14_distance)) +
   theme_bw()
 return(GenGeoCorr)
 }
+
 ###END FUNCTIONS ###
 ```
 ###LNBA branch
 ```{r}
 ##Reading metadata file
 metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/Metadata_coordinates_dating_sex_updated_def.csv") %>%
-  filter(!Name=="XXX001.A18956.61")
+  filter(!Name=="XXX001.A18956-61")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv") %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv", check.names = FALSE) %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
   select(-Ref, -Call) %>%
-    filter(!Genomes=="XXX001.A18956.61")
+    filter(!Genomes=="XXX001.A18956-61")
 
 #missingData <- snpTable %>%
 #  filter(CallDef == "N") %>%
@@ -241,17 +264,28 @@ snpDataPestis <- snpTable %>%
 
 levelsPhylogeny <- metadata$Name
 
-longDistDNAPercent <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
-
-#Calculate distance matrix
-longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
-
-#Difference median C14
-medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+#Calculate genetic distance matrix and converting it to long for plotting
+DistDNA <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
+DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
 
-GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
-GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+#Calculate geographic distance matrix and converting it to long for plotting
+GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
+
+#Difference median C14 and converting it to long for plotting
+C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
+C14long <- matrixToLong(C14Dist, "C14_distance", levelsPhylogeny)
+
+#Ordering the genetic matrix to have the same order for calculating Mantel's stats
+DistDNAGeo <- DistDNA[rownames(GeoDist),rownames(GeoDist)]
+DistDNATime <- DistDNA[rownames(C14Dist),rownames(C14Dist)]
+
+mantelGenGeo <- mantel(DistDNAGeo, GeoDist, method = "spearman", permutations = 9999)
+mantelGenTime <- mantel(DistDNATime, C14Dist, method = "spearman", permutations = 9999)
+
+GenTimeCorr <- plotGenTime(DNAlong, Geolong, C14long, mantelGenTime)
+GenGeoCorr <- plotGenGeo(DNAlong, Geolong, C14long, mantelGenGeo)
 
 plotLNBA <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
 plotLNBAannotated <- annotate_figure(plotLNBA, top= text_grob("Y. pestis LNBA branch", face = "italic"))
@@ -265,12 +299,11 @@ plotLNBAannotated <- annotate_figure(plotLNBA, top= text_grob("Y. pestis LNBA br
 metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/2ndPandemic_transect/Metadata_2ndpandemic.csv")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/genotyped_snpTable_OOH003_c.tsv") %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv") %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
-  select(-Ref, -Call) %>%
-    filter(!Genomes=="XXX001.A18956.61_merged")
+  select(-Ref, -Call)
 
 #missingData <- snpTable %>%
 #  filter(CallDef == "N") %>%
@@ -287,16 +320,27 @@ snpDataPestis <- snpTable %>%
 
 levelsPhylogeny <- metadata$Name
 
-longDistDNAPercent <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
+#Calculate genetic distance matrix and converting it to long for plotting
+DistDNA <- GenDistanceCalculator(snpDataPestis, "raw", TRUE, levelsPhylogeny, snpTable)
+DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
-#Calculate distance matrix
-longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+#Calculate geographic distance matrix and converting it to long for plotting
+GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
 
-#Difference median C14
-medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+#Difference median C14 and converting it to long for plotting
+C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
+C14long <- matrixToLong(C14Dist, "C14_distance", levelsPhylogeny)
 
-GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
-GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+#Ordering the genetic matrix to have the same order for calculating Mantel's stats
+DistDNAGeo <- DistDNA[rownames(GeoDist),rownames(GeoDist)]
+DistDNATime <- DistDNA[rownames(C14Dist),rownames(C14Dist)]
+
+mantelGenGeo <- mantel(DistDNAGeo, GeoDist, method = "spearman", permutations = 9999)
+mantelGenTime <- mantel(DistDNATime, C14Dist, method = "spearman", permutations = 9999)
+
+GenTimeCorr <- plotGenTime(DNAlong, Geolong, C14long, mantelGenTime)
+GenGeoCorr <- plotGenGeo(DNAlong, Geolong, C14long, mantelGenGeo)
 
 plot2ndpandemic <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
 plot2ndpandemicannotated <- annotate_figure(plot2ndpandemic, top= text_grob("Y. pestis second pandemic branch", face = "italic"))
@@ -333,16 +377,27 @@ snpData <- snpTable %>%
 #To order the matrix by phylogeny
 levelsPhylogeny <- metadata$Name
 
-longDistDNAPercent <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+#Calculate genetic distance matrix and converting it to long for plotting
+DistDNA <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
-#Calculate distance matrix
-longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+#Calculate geographic distance matrix and converting it to long for plotting
+GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
 
-#Difference median C14
-medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+#Difference median C14 and converting it to long for plotting
+C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
+C14long <- matrixToLong(C14Dist, "C14_distance", levelsPhylogeny)
 
-GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
-GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+#Ordering the genetic matrix to have the same order for calculating Mantel's stats
+DistDNAGeo <- DistDNA[rownames(GeoDist),rownames(GeoDist)]
+DistDNATime <- DistDNA[rownames(C14Dist),rownames(C14Dist)]
+
+mantelGenGeo <- mantel(DistDNAGeo, GeoDist, method = "spearman", permutations = 9999)
+mantelGenTime <- mantel(DistDNATime, C14Dist, method = "spearman", permutations = 9999)
+
+GenTimeCorr <- plotGenTime(DNAlong, Geolong, C14long, mantelGenTime)
+GenGeoCorr <- plotGenGeo(DNAlong, Geolong, C14long, mantelGenGeo)
 
 plotEnterica <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
 plotEntericaAnnotated <- annotate_figure(plotEnterica, top= text_grob("S. enterica", face = "italic"))
@@ -375,16 +430,27 @@ snpData <- snpTable %>%
 #To order the matrix by phylogeny
 levelsPhylogeny <- metadata$Name
 
-longDistDNAPercent <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+#Calculate genetic distance matrix and converting it to long for plotting
+DistDNA <- GenDistanceCalculator(snpData, "raw", TRUE, levelsPhylogeny, snpTable)
+DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
-#Calculate distance matrix
-longDistMa <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+#Calculate geographic distance matrix and converting it to long for plotting
+GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
 
-#Difference median C14
-medianDateDiffLong <- C14DistanceCalculator(metadata, levelsPhylogeny)
+#Difference median C14 and converting it to long for plotting
+C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
+C14long <- matrixToLong(C14Dist, "C14_distance", levelsPhylogeny)
 
-GenTimeCorr <- plotGenTime(longDistDNAPercent, longDistMa, medianDateDiffLong)
-GenGeoCorr <- plotGenGeo(longDistDNAPercent, longDistMa, medianDateDiffLong)
+#Ordering the genetic matrix to have the same order for calculating Mantel's stats
+DistDNAGeo <- DistDNA[rownames(GeoDist),rownames(GeoDist)]
+DistDNATime <- DistDNA[rownames(C14Dist),rownames(C14Dist)]
+
+mantelGenGeo <- mantel(DistDNAGeo, GeoDist, method = "spearman", permutations = 9999)
+mantelGenTime <- mantel(DistDNATime, C14Dist, method = "spearman", permutations = 9999)
+
+GenTimeCorr <- plotGenTime(DNAlong, Geolong, C14long, mantelGenTime)
+GenGeoCorr <- plotGenGeo(DNAlong, Geolong, C14long, mantelGenGeo)
 
 plotLeprosy <- ggarrange(GenTimeCorr, GenGeoCorr, ncol = 2)
 plotLeprosyannotated <- annotate_figure(plotLeprosy, top= text_grob("Mycobacterium Leprae", face = "italic"))
@@ -492,7 +558,7 @@ library(directlabels)
 library(ggplot2)
 library(RColorBrewer)
 library(ggrepel)
-
+library(ggsn)
  
 metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_sites_coordinates.csv") 
 metadataLNBA$Published <- factor(metadataLNBA$Published, levels = c("This study","Yu et al. (2020)","Spyrou et al. (2018)","Andrades Valtueña et al. (2017)", "Rasmussen et al. (2015)"))
@@ -511,7 +577,7 @@ Map <- ggmap(map, aes(label =metadataLNBA$Site)) +
   geom_label_repel(data=metadataLNBA, aes(x = Longitude, y = Latitude, label = SiteA), label.size = NA, fill = alpha(c("white"),0)) +
  xlab("Latitude") + 
  ylab("Longitude") +
-  #scale_fill_manual(name = "Clade", values = c("#e7298aff","#e6ab02")) +
+  scale_fill_manual(name = "Clade", values = c("#9600bf99","#22ad80ff")) +
   scale_shape_manual(name = "Publication",values = c(24,25,23,21,22)) +
   scale_x_continuous(expand=c(0,0))+
   scale_y_continuous(expand=c(0,0)) +
@@ -522,8 +588,8 @@ Map <- ggmap(map, aes(label =metadataLNBA$Site)) +
         legend.direction = "vertical",
         legend.box = "horizontal",
         legend.spacing.x = unit(0,"mm"),
-        legend.box.background = element_rect(fill = "white", colour = "white"))
-
+        legend.box.background = element_rect(fill = "white", colour = "white")) + 
+  scalebar(x.min = -11, x.max = 112, y.min = 32, y.max = 64, dist = 500, dist_unit = "km", transform = TRUE, model = 'WGS84', location = "bottomleft", st.size = 2, height = 0.01, st.bottom = FALSE, border.size = 0.1)
 
 ggsave(filename = "Figure1_ArchaeologicalSites_2021.pdf", plot = Map, device = "pdf", path = "Plots/", height = 40, width = 35, units = "cm", limitsize = FALSE, bg = "transparent")
 ```
