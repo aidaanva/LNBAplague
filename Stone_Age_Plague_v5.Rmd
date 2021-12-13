@@ -46,14 +46,14 @@ library(readr)
 library(viridis)
 library(ggpubr)
 
-chromosome_heatmap <- read_tsv(file = "Data/Virulence/Chromosome/all_chromosome.tsv",
+chromosome_heatmap <- read_tsv(file = "Data/Virulence/Chromosome/all_chromosome_reviews.tsv",
                                col_names = c("genome", "perc", "genes")) %>%
   mutate(genome= ifelse(genome=="1343UNTA85", "1343UNTAL85", genome))
 
 chromosome_heatmap_reduced <- chromosome_heatmap[!grepl("filamentous_prophage[1-9]", chromosome_heatmap$genes),]
 
 
-genomes_ordered <- read_csv(file = "Data/Virulence/genome_names.csv",
+genomes_ordered <- read_csv(file = "Data/Virulence/genome_names_reviews.csv",
                             col_names = c("Order")) %>%
   mutate(Order= ifelse(Order=="1343UNTA85", "1343UNTAL85", Order))
 
@@ -76,7 +76,7 @@ chromosome_plot <- ggplot(data = chromosome_heatmap_reduced, mapping = aes(x = g
 ```
 ###Plasmids
 ```{r}
-plasmids_heatmap <- read_tsv(file = "Data/Virulence/Plasmids/all_plasmids.tsv",
+plasmids_heatmap <- read_tsv(file = "Data/Virulence/Plasmids/all_plasmids_reviews.tsv",
                              col_names = c("genome", "perc", "genes", "plasmid")) %>%
   mutate(genome= ifelse(genome=="1343UNTA85", "1343UNTAL85", genome))
 
@@ -101,8 +101,8 @@ plasmids_plot <- ggplot(data = plasmids_heatmap, mapping = aes(x = genes, y = ge
   labs(fill = "Percentage", x = NULL)
 
 Figure2 <- ggarrange(chromosome_plot, plasmids_plot, nrow = 2, heights = c(1,0.8))
-ggsave("Figure2.pdf", plot = Figure2, device = cairo_pdf, path = "Plots/", height = 30, width = 40, units = "cm", limitsize = FALSE)
-ggsave("Figure2.png", plot = Figure2, device = "png", path = "Plots/", height = 30, width = 40, units = "cm", limitsize = FALSE)
+ggsave("Figure3.pdf", plot = Figure2, device = cairo_pdf, path = "Plots/", height = 35, width = 45, units = "cm", limitsize = FALSE)
+ggsave("Figure3.png", plot = Figure2, device = "png", path = "Plots/", height = 35, width = 45, units = "cm", limitsize = FALSE)
 
 ```
 
@@ -176,10 +176,10 @@ plotGenTime <- function(DNADist, GeoDist, TimeDist, mantelResults) {
   
   GenTimeCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=C14_distance, color=GeoD)) +
     geom_point() +
-    geom_smooth(method = lm, se = FALSE) +
+    #geom_smooth(method = lm, se = FALSE) +
     #geom_smooth() +
     scale_color_viridis_c(option = "plasma") +
-    labs(title = paste("Mantel Statistic r =", round(mantelResults$statistic, digits = 4), ", Significance =", round(mantelResults$signif, digits = 4)), x = "Genetic distance", y= "Temporal distance", colour= "Geographical \n distance") +
+    labs(title = paste("Mantel Statistic r = ", round(mantelResults$statistic, digits = 4), ", p-value = ", round(mantelResults$signif, digits = 4), sep = ""), x = "Genetic distance", y= "Temporal distance", colour= "Geographical \n distance") +
     theme_bw()
   return(GenTimeCorr)
 }
@@ -192,10 +192,10 @@ plotGenGeo <- function(DNADist, GeoDist, TimeDist, mantelResults) {
   
   GenGeoCorr <- ggplot(GenGeoTimeD, aes(x= GenD, y=GeoD, color=C14_distance)) +
     geom_point() +
-    geom_smooth(method = lm, se = FALSE) +
+   # geom_smooth(method = lm, se = FALSE) +
 #    geom_smooth() +
     scale_color_viridis_c(option = "plasma") +
-    labs(title = paste("Mantel Statistic r =", round(mantelResults$statistic, digits = 4), ", Significance =", round(mantelResults$signif, digits = 4)), x = "Genetic distance", y= "Geographical distance", colour= "Temporal \n distance") +
+    labs(title = paste("Mantel Statistic r = ", round(mantelResults$statistic, digits = 4), ", p-value = ", round(mantelResults$signif, digits = 4), sep = ""), x = "Genetic distance", y= "Geographical distance", colour= "Temporal \n distance") +
     theme_bw()
   return(GenGeoCorr)
 }
@@ -242,7 +242,7 @@ metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/M
   filter(!Name=="XXX001.A18956-61")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv", check.names = FALSE) %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_gok2_RV2039_SNPExcluded_genotyped.tsv", check.names = FALSE) %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
@@ -299,7 +299,7 @@ plotLNBAannotated <- annotate_figure(plotLNBA, top= text_grob("Y. pestis LNBA br
 metadata <- read.csv("Data/2020-07-09_LNBA_leprosy_enterica_comp/2ndPandemic_transect/Metadata_2ndpandemic.csv")
 
 ##Reading snpTable and selecting genomes present in the metadata file
-snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_SNPexcluded_genotyped.tsv") %>%
+snpTable <- read.delim("Data/2020-07-09_LNBA_leprosy_enterica_comp/LNBA_transect/LNBAdataset2021_gok2_RV2039_SNPExcluded_genotyped.tsv") %>%
   pivot_longer(c(-Position, -Ref), names_to = "Genomes", values_to = "Call") %>%
   filter(Genomes %in% metadata$Name) %>%
   mutate(CallDef = ifelse(Call == ".", as.character(Ref), as.character(Call))) %>%
@@ -495,7 +495,7 @@ plottingMissingRegions <- function(df, levelvector, genomeToFilter, lengthChromo
 ```{r}
 order_genomes <- read.delim("Data/Indels/genome_names.csv")
 
-missingregionsCO92_merged <- read.delim("Data/Indels/Missingregions_min500bp_100.tsv", header = F, col.names = c('BamName','PositionStart','PositionEnd', 'Length','PercentCov')) %>%
+missingregionsCO92_merged <- read.delim("Data/Indels/Missingregions_min500bp_100_reviews.tsv", header = F, col.names = c('BamName','PositionStart','PositionEnd', 'Length','PercentCov')) %>%
   mutate(BamName = str_replace(BamName, ".reads.fastq.sorted.cleaned.rmdup.MarkD_", "")) %>%
   mutate(BamName = str_replace(BamName, ".reads.fastq.sorted.cleaned.rmdup.MarkD", "")) %>%
   mutate(BamName = str_replace(BamName, ".merged.samereadgroup.cleaned", "")) %>%
@@ -519,12 +519,45 @@ ggsave(filename = "SupplementaryFigure3_0.20_indels_2021.pdf", plot = missing_pl
 
 ```
 
-#Figure displaying the radiocarbon range per sample
+#Pseudogene analysis
+```{r}
+library(ggplot2)
+library(readr)
+
+#Need the data
+pseudo <- read_tsv("~/Nextcloud/LNBA_snpEff/AAV_4X_snp_dataset2021_gok2_RV2039_noqsub_SNPExcluded_25112021_211210/LNBA_pestis_pseudogenes.tsv",
+                   col_names = c("genome", "pseudogenes", "coverage", "group", "colour"))
+
+#Need the csv
+genomes_ordered <- read_csv(file = "~/Nextcloud/LNBA_snpEff/AAV_4X_snp_dataset2021_gok2_RV2039_noqsub_SNPExcluded_25112021_211210/LNBA_pestis_genomes_order.csv",
+                            col_names = c("Order"))
+y_order <- as.vector(genomes_ordered$Order)
+pseudo$genome <- factor(pseudo$genome, levels=y_order)
+
+pseudo$coverage <- factor(pseudo$coverage, levels=c("low coverage", "called"))
+pseudo$group <- factor(pseudo$group, levels=c("preLNBA-/LNBA-", "LNBA+"))
+
+
+
+plot <- ggplot(data=pseudo, aes(y=genome, x=pseudogenes, fill=coverage)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  xlab(label =  "Number of pseudogenes") +
+  scale_x_continuous(breaks = seq(0, 12, by = 5)) +
+  theme(axis.title.y = element_blank(), legend.position = c(0.85, 0.3), axis.text.y = element_text(colour="#9600bfff"))+
+  scale_fill_manual(values = c("grey", "grey30"))+
+  guides(fill = guide_legend(title = " ", reverse = TRUE)) +
+  facet_grid(rows = vars(group), scales = "free", space = "free") + 
+  theme(strip.background = element_rect(fill="grey"))
+```
+
+
+#Radiocarbon range per sample
 ```{r}
 metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_coordinates_dating_sex.csv")
 
-metadataLNBA$Sample.Name <- factor(metadataLNBA$Sample.Name, levels= c("RK1001", "RISE509", "VLI092","KNK001","GRS004", "GEN72","Gyvakaral1","VEL003","I5884","GLZ001","GLZ002","KunilaII","1343UNTAL85","HOP001", "HOP004","KLZ001","CHC004","6POST","KLE031", "KLE048","MIB054","RISE505","OOH003","ARS007","GRH001", "KZL002","I2470","RT5"))
-metadataLNBA$Branch <- factor(metadataLNBA$Branch, levels = c("NoLNBA", "LNBA"))
+metadataLNBA$Sample.Name <- factor(metadataLNBA$Sample.Name, levels= c("RV2039","Gok2","RK1001", "RISE509", "VLI092","KNK001","GRS004", "GEN72","Gyvakaral1","VEL003","I5884","GLZ001","GLZ002","KunilaII","1343UNTAL85","HOP001", "HOP004","KLZ001","CHC004","6POST","KLE031", "KLE048","MIB054","RISE505","OOH003","ARS007","GRH001", "KZL002","I2470","RT5"))
+metadataLNBA$Branch <- factor(metadataLNBA$Branch, levels = c("NoLNBA", "LNBA","Gok2","RV2039"))
 metadataLNBA$Dating <- factor(metadataLNBA$Dating, levels = c("C14", "BEAST"))
 
 library(ggalt)
@@ -533,7 +566,7 @@ radiocarbon_plot <- ggplot() +
                                         xend=End_Range_C14, colour=Dating), size=1) +
   scale_x_reverse() +
   scale_y_discrete(position = "right") +
-  scale_color_manual(values = c("#00bfc4ff","#f8766dff")) +
+  scale_color_manual(values = c("#e65100ff","#ffb74dff")) +
   labs(x="cal. years Before Present", y=NULL) +
   theme_classic() +
   facet_grid(rows = vars(Branch), scales = "free", space = "free") +
@@ -561,7 +594,8 @@ library(ggrepel)
 library(ggsn)
  
 metadataLNBA <- read.csv("Data/Radiocarbon_dates/Metadata_sites_coordinates.csv") 
-metadataLNBA$Published <- factor(metadataLNBA$Published, levels = c("This study","Yu et al. (2020)","Spyrou et al. (2018)","Andrades Valtueña et al. (2017)", "Rasmussen et al. (2015)"))
+metadataLNBA$Published <- factor(metadataLNBA$Published, levels = c("This study","Susat et al. (2021)","Yu et al. (2020)","Rascovan et al. (2019)","Spyrou et al. (2018)","Andrades Valtueña et al. (2017)", "Rasmussen et al. (2015)"))
+metadataLNBA$Branch <- factor(metadataLNBA$Branch, levels = c("preLNBA-","LNBA-","LNBA+")) 
 
 height <- max(metadataLNBA$Latitude) - min(metadataLNBA$Latitude)
 width <- max(metadataLNBA$Longitude) - min(metadataLNBA$Longitude)
@@ -577,14 +611,14 @@ Map <- ggmap(map, aes(label =metadataLNBA$Site)) +
   geom_label_repel(data=metadataLNBA, aes(x = Longitude, y = Latitude, label = SiteA), label.size = NA, fill = alpha(c("white"),0)) +
  xlab("Latitude") + 
  ylab("Longitude") +
-  scale_fill_manual(name = "Clade", values = c("#9600bf99","#22ad80ff")) +
-  scale_shape_manual(name = "Publication",values = c(24,25,23,21,22)) +
+  scale_fill_manual(name = "Clade", values = c("#0047abff","#9600bf99","#22ad80ff")) +
+  scale_shape_manual(name = "Publication",values = c(24,25,23,21,22,24,25)) +
   scale_x_continuous(expand=c(0,0))+
   scale_y_continuous(expand=c(0,0)) +
   guides(fill = guide_legend(override.aes = list(shape =21)),
          shape = guide_legend(override.aes = list(fill = "black", size = 3))) +
   theme_bw() +
-  theme(legend.position = c(0.88,0.157),
+  theme(legend.position = c(0.88,0.2),
         legend.direction = "vertical",
         legend.box = "horizontal",
         legend.spacing.x = unit(0,"mm"),
