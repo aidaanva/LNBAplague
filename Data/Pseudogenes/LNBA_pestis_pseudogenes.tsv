@@ -1,0 +1,70 @@
+RISE509	0	low coverage	preLNBA-/LNBA-	#9600bfff
+RK1001	1	low coverage	preLNBA-/LNBA-	#9600bfff
+VLI092	0	low coverage	preLNBA-/LNBA-	#9600bfff
+KNK001	0	low coverage	preLNBA-/LNBA-	#9600bfff
+GRS004	0	low coverage	preLNBA-/LNBA-	#9600bfff
+GEN72	0	low coverage	preLNBA-/LNBA-	#9600bfff
+Gyvakarai1	0	low coverage	preLNBA-/LNBA-	#9600bfff
+VEL003	0	low coverage	preLNBA-/LNBA-	#9600bfff
+I5884	0	low coverage	preLNBA-/LNBA-	#9600bfff
+GZL002	0	low coverage	preLNBA-/LNBA-	#9600bfff
+GZL001	0	low coverage	preLNBA-/LNBA-	#9600bfff
+KunilaII	0	low coverage	preLNBA-/LNBA-	#9600bfff
+1343UNTAL85	0	low coverage	preLNBA-/LNBA-	#9600bfff
+HOP001	0	low coverage	preLNBA-/LNBA-	#9600bfff
+HOP004	0	low coverage	preLNBA-/LNBA-	#9600bfff
+KLZ001	0	low coverage	preLNBA-/LNBA-	#9600bfff
+CHC004	1	low coverage	preLNBA-/LNBA-	#9600bfff
+6POST	1	low coverage	preLNBA-/LNBA-	#9600bfff
+KLE031	0	low coverage	preLNBA-/LNBA-	#9600bfff
+KLE048	0	low coverage	preLNBA-/LNBA-	#9600bfff
+MIB054	0	low coverage	preLNBA-/LNBA-	#9600bfff
+OOH003	1	low coverage	preLNBA-/LNBA-	#9600bfff
+RISE505	0	low coverage	preLNBA-/LNBA-	#9600bfff
+ARS007	6	low coverage	preLNBA-/LNBA-	#9600bfff
+GRH001	7	low coverage	preLNBA-/LNBA-	#9600bfff
+KZL002	1	low coverage	preLNBA-/LNBA-	#9600bfff
+RT5	0	low coverage	LNBA+	#22ad80ff
+I2470	0	low coverage	LNBA+	#22ad80ff
+OBS116	0	low coverage	LNBA+	black
+0.PE7b_620024	0	low coverage	LNBA+	black
+0.PE2b_G8786	0	low coverage	LNBA+	black
+0.PE4_M0000002	0	low coverage	LNBA+	black
+0.ANT5_A-1836	0	low coverage	LNBA+	black
+Gok2	0	low coverage	preLNBA-/LNBA-	black
+RV2039	0	low coverage	preLNBA-/LNBA-	black
+RISE509	1	called	preLNBA-/LNBA-	#9600bfff
+RK1001	0	called	preLNBA-/LNBA-	#9600bfff
+VLI092	1	called	preLNBA-/LNBA-	#9600bfff
+KNK001	1	called	preLNBA-/LNBA-	#9600bfff
+GRS004	1	called	preLNBA-/LNBA-	#9600bfff
+GEN72	1	called	preLNBA-/LNBA-	#9600bfff
+Gyvakarai1	2	called	preLNBA-/LNBA-	#9600bfff
+VEL003	1	called	preLNBA-/LNBA-	#9600bfff
+I5884	1	called	preLNBA-/LNBA-	#9600bfff
+GZL002	1	called	preLNBA-/LNBA-	#9600bfff
+GZL001	1	called	preLNBA-/LNBA-	#9600bfff
+KunilaII	1	called	preLNBA-/LNBA-	#9600bfff
+1343UNTAL85	2	called	preLNBA-/LNBA-	#9600bfff
+HOP001	2	called	preLNBA-/LNBA-	#9600bfff
+HOP004	2	called	preLNBA-/LNBA-	#9600bfff
+KLZ001	4	called	preLNBA-/LNBA-	#9600bfff
+CHC004	3	called	preLNBA-/LNBA-	#9600bfff
+6POST	3	called	preLNBA-/LNBA-	#9600bfff
+KLE031	5	called	preLNBA-/LNBA-	#9600bfff
+KLE048	5	called	preLNBA-/LNBA-	#9600bfff
+MIB054	7	called	preLNBA-/LNBA-	#9600bfff
+OOH003	6	called	preLNBA-/LNBA-	#9600bfff
+RISE505	9	called	preLNBA-/LNBA-	#9600bfff
+ARS007	3	called	preLNBA-/LNBA-	#9600bfff
+GRH001	6	called	preLNBA-/LNBA-	#9600bfff
+KZL002	13	called	preLNBA-/LNBA-	#9600bfff
+RT5	4	called	LNBA+	#22ad80ff
+I2470	4	called	LNBA+	#22ad80ff
+OBS116	6	called	LNBA+	black
+0.PE7b_620024	6	called	LNBA+	black
+0.PE2b_G8786	12	called	LNBA+	black
+0.PE4_M0000002	7	called	LNBA+	black
+0.ANT5_A-1836	10	called	LNBA+	black
+Gok2	0	called	preLNBA-/LNBA-	black
+RV2039	0	called	preLNBA-/LNBA-	black

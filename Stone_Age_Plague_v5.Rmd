@@ -270,8 +270,10 @@ DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
 
 #Calculate geographic distance matrix and converting it to long for plotting
-GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
-Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
+GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny) 
+Geolong <- matrixToLong(GeoDist/1000, "GeoD", levelsPhylogeny)
+
+  
 
 #Difference median C14 and converting it to long for plotting
 C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
@@ -326,7 +328,7 @@ DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
 #Calculate geographic distance matrix and converting it to long for plotting
 GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
-Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist/1000, "GeoD", levelsPhylogeny)
 
 #Difference median C14 and converting it to long for plotting
 C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
@@ -383,7 +385,7 @@ DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
 #Calculate geographic distance matrix and converting it to long for plotting
 GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
-Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist/1000, "GeoD", levelsPhylogeny)
 
 #Difference median C14 and converting it to long for plotting
 C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
@@ -436,7 +438,7 @@ DNAlong <- matrixToLong(DistDNA, "GenD", levelsPhylogeny)
 
 #Calculate geographic distance matrix and converting it to long for plotting
 GeoDist <- GeoDistanceCalculator(metadata, levelsPhylogeny)
-Geolong <- matrixToLong(GeoDist, "GeoD", levelsPhylogeny)
+Geolong <- matrixToLong(GeoDist/1000, "GeoD", levelsPhylogeny)
 
 #Difference median C14 and converting it to long for plotting
 C14Dist <- C14DistanceCalculator(metadata, levelsPhylogeny)
@@ -460,7 +462,7 @@ plotLeprosyannotated <- annotate_figure(plotLeprosy, top= text_grob("Mycobacteri
 correlations_final <- ggarrange(plotLNBAannotated, plot2ndpandemicannotated, plotEntericaAnnotated, plotLeprosyannotated,
           nrow = 4,
           labels = c("A","B","C", "D"))
-ggsave(filename = "Supplementary_figure6_correlations.pdf", plot = correlations_final, device = "pdf", path = "Plots/", height = 38, width = 28, units = "cm", limitsize = FALSE)
+ggsave(filename = "Supplementary_figure7_correlations.pdf", plot = correlations_final, device = "pdf", path = "Plots/", height = 38, width = 28, units = "cm", limitsize = FALSE)
 
 
 correlation_pestis_only <- ggarrange(plotLNBAannotated, plot2ndpandemicannotated,
@@ -524,31 +526,30 @@ ggsave(filename = "SupplementaryFigure3_0.20_indels_2021.pdf", plot = missing_pl
 library(ggplot2)
 library(readr)
 
-#Need the data
-pseudo <- read_tsv("~/Nextcloud/LNBA_snpEff/AAV_4X_snp_dataset2021_gok2_RV2039_noqsub_SNPExcluded_25112021_211210/LNBA_pestis_pseudogenes.tsv",
+pseudo <- read_tsv("Data/Pseudogenes/LNBA_pestis_pseudogenes.tsv",
                    col_names = c("genome", "pseudogenes", "coverage", "group", "colour"))
 
-#Need the csv
-genomes_ordered <- read_csv(file = "~/Nextcloud/LNBA_snpEff/AAV_4X_snp_dataset2021_gok2_RV2039_noqsub_SNPExcluded_25112021_211210/LNBA_pestis_genomes_order.csv",
+genomes_ordered <- read_csv(file = "Data/Pseudogenes/LNBA_pestis_genomes_order.csv",
                             col_names = c("Order"))
 y_order <- as.vector(genomes_ordered$Order)
 pseudo$genome <- factor(pseudo$genome, levels=y_order)
 
 pseudo$coverage <- factor(pseudo$coverage, levels=c("low coverage", "called"))
-pseudo$group <- factor(pseudo$group, levels=c("preLNBA-/LNBA-", "LNBA+"))
+pseudo$group <- factor(pseudo$group, levels=c("LNBA+","preLNBA-/LNBA-"))
 
-
-
-plot <- ggplot(data=pseudo, aes(y=genome, x=pseudogenes, fill=coverage)) +
+myColours <- c("#9600bfff", "#22ad80ff", "black")
+pseudo_plot <- ggplot(data=pseudo, aes(y=genome, x=pseudogenes, fill=coverage)) +
   geom_bar(stat="identity") +
   theme_classic() +
   xlab(label =  "Number of pseudogenes") +
   scale_x_continuous(breaks = seq(0, 12, by = 5)) +
-  theme(axis.title.y = element_blank(), legend.position = c(0.85, 0.3), axis.text.y = element_text(colour="#9600bfff"))+
+  theme(axis.title.y = element_blank(), legend.position = c(0.85, 0.15))+
   scale_fill_manual(values = c("grey", "grey30"))+
   guides(fill = guide_legend(title = " ", reverse = TRUE)) +
   facet_grid(rows = vars(group), scales = "free", space = "free") + 
-  theme(strip.background = element_rect(fill="grey"))
+  theme(strip.background = element_rect(fill="grey"), axis.text = element_text(size = 16, colour="black"), legend.text = element_text(size = 18), strip.text = element_text(size = 16), axis.title.x = element_text(size = 16), legend.spacing.y = unit(0.1, "mm"))
+
+ggsave(filename = "SupplementaryFigure6_pseudogenes.pdf", plot = pseudo_plot, device = "pdf", path = "Plots/", height = 30, width = 35, units = "cm", limitsize = FALSE)
 ```
 
 
