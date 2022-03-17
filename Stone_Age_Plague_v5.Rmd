@@ -613,7 +613,7 @@ Map <- ggmap(map, aes(label =metadataLNBA$Site)) +
  xlab("Latitude") + 
  ylab("Longitude") +
   scale_fill_manual(name = "Clade", values = c("#0047abff","#9600bf99","#22ad80ff")) +
-  scale_shape_manual(name = "Publication",values = c(24,25,23,21,22,24,25)) +
+  scale_shape_manual(name = "Publication",values = c(24,25,25,21,23,21,22)) +
   scale_x_continuous(expand=c(0,0))+
   scale_y_continuous(expand=c(0,0)) +
   guides(fill = guide_legend(override.aes = list(shape =21)),
